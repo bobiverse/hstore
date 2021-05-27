@@ -61,14 +61,12 @@ func TestHstoreValues(t *testing.T) {
 	hs.SetFloat("ccc5", 0.0, 5)
 	hs.SetFloat("ccc6", 100, 6)
 	hs.SetFloat("ccc7", 100.00, 7)
-	hs.SetDayAvg("aaa", 0)    // "aaa_day_avg"
-	hs.SetDayAvg("bbb", 1000) // "bbb_day_avg"
 	hs.SetInt("k", 123456)
 	hs.SetInt("m", 12345678)
 	hs.Set("mydate", timetest)
 
 	// Field counts must appear in hstore
-	cnt := 14
+	cnt := 12
 
 	if hs.Len() != cnt {
 		t.Fatalf("Must be stored %d items. Found: %d", cnt, hs.Len())
@@ -98,10 +96,6 @@ func TestHstoreValues(t *testing.T) {
 	}
 	if s := hs.Get("ccc7"); s != "100" {
 		t.Fatalf("Not all zeroes must be removed. Found: %s", s)
-	}
-
-	if f := hs.GetFloat("bbb_day_avg"); f != 0.2 {
-		t.Fatalf("Average must be %.5f. Found: %.5f", 0.2, f)
 	}
 
 	if mytime := hs.GetTime("mydate"); mytime.UnixNano() != timetest.UnixNano() {

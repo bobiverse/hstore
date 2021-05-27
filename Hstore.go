@@ -125,22 +125,6 @@ func (hstore *Hstore) SetFloat(key string, val float64, decimals int) {
 	hstore.Hstore[key] = &s
 }
 
-// SetDayAvg - create new key based on old one and calculate averga value per day.
-func (hstore *Hstore) SetDayAvg(key string, dayCount int) (string, float64) {
-	newKey := strings.TrimSuffix(key, "_count") + "_day_avg"
-
-	n := hstore.GetFloat(key)
-	if n == 0.0 || dayCount == 0 {
-		hstore.SetFloat(newKey, 0.0, 1)
-		return newKey, 0.0
-	}
-
-	avg := n / float64(dayCount)
-
-	hstore.SetFloat(newKey, avg, 1)
-	return newKey, avg
-}
-
 // Append value with separator
 func (hstore *Hstore) Append(key, val, sep string) {
 	s := hstore.Get(key)
