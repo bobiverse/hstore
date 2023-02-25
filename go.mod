@@ -8,5 +8,5 @@ require (
 	github.com/jinzhu/gorm v1.9.16
 	github.com/lib/pq v1.10.2 // indirect
 	github.com/mattn/go-isatty v0.0.13 // indirect
-	golang.org/x/sys v0.0.0-20210525143221-35b2ab0089ea // indirect
+	golang.org/x/sys v0.1.0 // indirect
 )
