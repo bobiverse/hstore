@@ -1,6 +1,8 @@
 package hstore
 
 import (
+	"database/sql/driver"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -9,12 +11,11 @@ import (
 
 	"github.com/araddon/dateparse"
 	"github.com/fatih/color"
-	"github.com/jinzhu/gorm/dialects/postgres"
 )
 
-// Hstore ..
+// Hstore ...
 type Hstore struct {
-	postgres.Hstore
+	Data map[string]string `gorm:"type:hstore"`
 
 	// Use cache to save more complex calculations  and reuse them
 	// exmaple: GetAsCalcs
@@ -24,18 +25,55 @@ type Hstore struct {
 // NewHstore ..
 func NewHstore() Hstore {
 	return Hstore{
-		Hstore: postgres.Hstore{},
+		Data: map[string]string{},
 	}
+}
+
+func (h *Hstore) Scan(src interface{}) error {
+	str, ok := src.(string)
+	if !ok {
+		return errors.New("Scan source was not string")
+	}
+
+	h.Data = make(map[string]string)
+	pairs := strings.Split(str, ", ")
+	for _, pair := range pairs {
+		kv := strings.Split(pair, "=>")
+		if len(kv) != 2 {
+			continue
+		}
+		key := strings.Trim(kv[0], `"`)
+		value := strings.Trim(kv[1], `"`)
+		h.Data[key] = value
+	}
+
+	return nil
+}
+
+func (h Hstore) Value() (driver.Value, error) {
+	if h.Data == nil {
+		return nil, nil
+	}
+
+	var hstore string
+	for key, value := range h.Data {
+		if hstore != "" {
+			hstore += ", "
+		}
+		hstore += fmt.Sprintf(`"%s"=>"%s"`, key, value)
+	}
+
+	return hstore, nil
 }
 
 // Len ..
 func (hstore *Hstore) Len() int {
-	return len(hstore.Hstore)
+	return len(hstore.Data)
 }
 
 // // Value for SQL interface
 // func (hstore Hstore) Value() (driver.Value, error) {
-// 	return hstore.Hstore, nil
+// 	return hstore.Data, nil
 // }
 
 // save value to cache
@@ -61,7 +99,7 @@ func (hstore *Hstore) loadFromCache(key string) interface{} {
 
 // IsEmpty ..
 func (hstore *Hstore) IsEmpty() bool {
-	isEmpty := hstore.Hstore == nil || hstore.Len() == 0
+	isEmpty := hstore.Data == nil || hstore.Len() == 0
 
 	// clear cache if main map is empty
 	if isEmpty && hstore.cache != nil {
@@ -74,19 +112,19 @@ func (hstore *Hstore) IsEmpty() bool {
 // InitIfEmpty ..
 func (hstore *Hstore) InitIfEmpty() *Hstore {
 	if hstore.IsEmpty() {
-		hstore.Hstore = postgres.Hstore{}
+		hstore.Data = map[string]string{}
 	}
 	return hstore
 }
 
 // Delete ..
 func (hstore *Hstore) Delete(key string) {
-	delete(hstore.Hstore, key)
+	delete(hstore.Data, key)
 }
 
 // DeleteByRegex ..
 func (hstore *Hstore) DeleteByRegex(pattern string) {
-	for key := range hstore.Hstore {
+	for key := range hstore.Data {
 		if matched, _ := regexp.MatchString(pattern, key); matched {
 			hstore.Delete(key)
 		}
@@ -96,8 +134,8 @@ func (hstore *Hstore) DeleteByRegex(pattern string) {
 // Print ..
 func (hstore *Hstore) Print() {
 	fmt.Println(strings.Repeat(".", 80))
-	for key, val := range hstore.Hstore {
-		color.Magenta("%25s ==> %s\n", key, *val)
+	for key, val := range hstore.Data {
+		color.Magenta("%25s ==> %s\n", key, val)
 	}
 	fmt.Println(strings.Repeat(".", 80))
 }
@@ -105,13 +143,13 @@ func (hstore *Hstore) Print() {
 // Set ..
 func (hstore *Hstore) Set(key string, val interface{}) {
 	s := fmt.Sprintf("%v", val)
-	hstore.Hstore[key] = &s
+	hstore.Data[key] = s
 }
 
 // SetInt ..
 func (hstore *Hstore) SetInt(key string, val int) {
 	s := fmt.Sprintf("%d", val)
-	hstore.Hstore[key] = &s
+	hstore.Data[key] = s
 }
 
 // SetFloat ..
@@ -122,7 +160,7 @@ func (hstore *Hstore) SetFloat(key string, val float64, decimals int) {
 	if s == "" {
 		s = "0"
 	}
-	hstore.Hstore[key] = &s
+	hstore.Data[key] = s
 }
 
 // Append value with separator
@@ -132,17 +170,17 @@ func (hstore *Hstore) Append(key, val, sep string) {
 		s += sep
 	}
 	s += val
-	hstore.Hstore[key] = &s
+	hstore.Data[key] = s
 }
 
 // Get ..
 func (hstore *Hstore) Get(key string) string {
-	s := hstore.Hstore[key]
-	if s == nil {
+	s := hstore.Data[key]
+	if s == "" {
 		return ""
 	}
 
-	return *s
+	return s
 }
 
 // GetInt ..
@@ -153,23 +191,23 @@ func (hstore *Hstore) GetInt(key string) int {
 
 // GetFloat ..
 func (hstore *Hstore) GetFloat(key string) float64 {
-	s := hstore.Hstore[key]
-	if s == nil {
+	s := hstore.Data[key]
+	if s == "" {
 		return 0.0
 	}
 
-	n, _ := strconv.ParseFloat(*s, 10)
+	n, _ := strconv.ParseFloat(s, 10)
 	return n
 }
 
 // GetTime ..
 func (hstore *Hstore) GetTime(key string) time.Time {
-	s := hstore.Hstore[key]
-	if s == nil {
+	s := hstore.Data[key]
+	if s == "" {
 		return time.Time{}
 	}
 
-	t, _ := dateparse.ParseAny(*s)
+	t, _ := dateparse.ParseAny(s)
 	// if err != nil {
 	// 	log.Printf("Hstore: GetTime: %s", err)
 	// }
@@ -178,12 +216,12 @@ func (hstore *Hstore) GetTime(key string) time.Time {
 
 // GetAsSlice ..
 func (hstore *Hstore) GetAsSlice(key, sep string) []string {
-	s := hstore.Hstore[key]
-	if s == nil {
+	s := hstore.Data[key]
+	if s == "" {
 		return nil
 	}
 
-	arr := strings.Split(*s, sep)
+	arr := strings.Split(s, sep)
 	return arr
 }
 
@@ -204,8 +242,8 @@ func (hstore *Hstore) GetAsMap(key, sepItem, sepKeyVal string) map[string]string
 
 // Have ..
 func (hstore *Hstore) Have(key string) bool {
-	s := hstore.Hstore[key]
-	if s == nil {
+	s := hstore.Data[key]
+	if s == "" {
 		return false
 	}
 
@@ -214,8 +252,8 @@ func (hstore *Hstore) Have(key string) bool {
 
 // Merge with another *Hstore
 func (hstore *Hstore) Merge(hstore2 *Hstore) *Hstore {
-	for key, val := range hstore2.Hstore {
-		hstore.Set(key, *val)
+	for key, val := range hstore2.Data {
+		hstore.Set(key, val)
 	}
 	return hstore
 }

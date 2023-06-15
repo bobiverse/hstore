@@ -11,13 +11,13 @@ func TestHstore(t *testing.T) {
 	var hs Hstore
 	// log.Printf("%+v %+v %+v, %+v", hs, hs.Hstore, hs.Len(), hs.Hstore == nil)
 
-	if !hs.IsEmpty() || hs.Hstore != nil {
+	if !hs.IsEmpty() || hs.Data != nil {
 		t.Fatalf("Hstore must be empty")
 	}
 
 	hs.InitIfEmpty()
 
-	if !hs.IsEmpty() || hs.Hstore == nil {
+	if !hs.IsEmpty() || hs.Data == nil {
 		t.Fatalf("Hstore still should be empty but initialized")
 	}
 
