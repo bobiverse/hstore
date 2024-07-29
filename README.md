@@ -7,7 +7,7 @@ Go package for postgresql hstore type ( https://www.postgresql.org/docs/13/hstor
 package main
 
 import (
-   "github.com/briiC/hstore"
+   "github.com/bobiverse/hstore"
    // ...
 )
 
