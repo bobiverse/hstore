@@ -18,7 +18,7 @@ type Hstore struct {
 
 	// Use cache to save more complex calculations  and reuse them
 	// exmaple: GetAsCalcs
-	cache map[string]interface{}
+	cache map[string]any
 }
 
 // NewHstore ..
@@ -39,15 +39,15 @@ func (hstore *Hstore) Len() int {
 // }
 
 // save value to cache
-func (hstore *Hstore) saveToCache(key string, v interface{}) {
+func (hstore *Hstore) saveToCache(key string, v any) {
 	if hstore.cache == nil {
-		hstore.cache = map[string]interface{}{}
+		hstore.cache = map[string]any{}
 	}
 	hstore.cache[key] = v
 }
 
 // load value from cache
-func (hstore *Hstore) loadFromCache(key string) interface{} {
+func (hstore *Hstore) loadFromCache(key string) any {
 	if hstore.cache == nil {
 		return nil
 	}
@@ -103,7 +103,7 @@ func (hstore *Hstore) Print() {
 }
 
 // Set ..
-func (hstore *Hstore) Set(key string, val interface{}) {
+func (hstore *Hstore) Set(key string, val any) {
 	s := fmt.Sprintf("%v", val)
 	hstore.Hstore[key] = &s
 }
@@ -126,6 +126,7 @@ func (hstore *Hstore) SetFloat(key string, val float64, decimals int) {
 }
 
 // Append value with separator
+// `a|b` + `c` => `a|b|c`
 func (hstore *Hstore) Append(key, val, sep string) {
 	s := hstore.Get(key)
 	if s != "" {
@@ -158,7 +159,7 @@ func (hstore *Hstore) GetFloat(key string) float64 {
 		return 0.0
 	}
 
-	n, _ := strconv.ParseFloat(*s, 10)
+	n, _ := strconv.ParseFloat(*s, 32)
 	return n
 }
 
@@ -204,12 +205,7 @@ func (hstore *Hstore) GetAsMap(key, sepItem, sepKeyVal string) map[string]string
 
 // Have ..
 func (hstore *Hstore) Have(key string) bool {
-	s := hstore.Hstore[key]
-	if s == nil {
-		return false
-	}
-
-	return true
+	return hstore.Hstore[key] != nil
 }
 
 // Merge with another *Hstore
