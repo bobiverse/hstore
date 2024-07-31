@@ -1,6 +1,8 @@
 package hstore
 
 import (
+	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -11,6 +13,9 @@ import (
 	"github.com/fatih/color"
 	"github.com/jinzhu/gorm/dialects/postgres"
 )
+
+// Compile-time assertion to check if User implements DBModel
+var _ sql.Scanner = (*Hstore)(nil)
 
 // Hstore ..
 type Hstore struct {
@@ -33,10 +38,34 @@ func (hstore *Hstore) Len() int {
 	return len(hstore.Hstore)
 }
 
-// // Value for SQL interface
-// func (hstore Hstore) Value() (driver.Value, error) {
-// 	return hstore.Hstore, nil
-// }
+// Value for SQL interface
+func (hstore Hstore) Value() (driver.Value, error) {
+	hval, err := hstore.Hstore.Value()
+	if err != nil {
+		return nil, err
+	}
+
+	if hval == nil {
+		return nil, nil
+	}
+	// log.Printf("[%s] %T", string(hval.([]uint8)), val)
+
+	return string(hval.([]uint8)), nil
+}
+
+// Scan for SQL interface
+func (hstore *Hstore) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+
+	val := []uint8(value.(string))
+	if err := hstore.Hstore.Scan(val); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // save value to cache
 func (hstore *Hstore) saveToCache(key string, v any) {
@@ -215,3 +244,20 @@ func (hstore *Hstore) Merge(hstore2 *Hstore) *Hstore {
 	}
 	return hstore
 }
+
+// Gorm
+
+// GormDataType gorm common data type
+func (hstore Hstore) GormDataType() string {
+	return "hstore"
+}
+
+// // GormDBDataType gorm db data type
+// func (hstore Hstore) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+// 	log.Println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+// 	switch db.Dialector.Name() {
+// 	case "postgres":
+// 		return "HSTORE"
+// 	}
+// 	return ""
+// }
