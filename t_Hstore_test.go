@@ -64,9 +64,10 @@ func TestHstoreValues(t *testing.T) {
 	hs.SetInt("k", 123456)
 	hs.SetInt("m", 12345678)
 	hs.Set("mydate", timetest)
+	hs.Set("nilval", nil)
 
 	// Field counts must appear in hstore
-	cnt := 12
+	cnt := 13
 
 	if hs.Len() != cnt {
 		t.Fatalf("Must be stored %d items. Found: %d", cnt, hs.Len())
@@ -168,5 +169,14 @@ func TestHstoreValues(t *testing.T) {
 	}
 	if arr := hs.GetAsSlice("no-key", ";"); len(arr) != 0 {
 		t.Fatalf("No key slice should be empty. Found: %v", arr)
+	}
+
+	// nil
+	v, exists := hs.Hstore["nilval"]
+	if !exists {
+		t.Fatalf("`nilval` should exist. Not found")
+	}
+	if *v != "" {
+		t.Fatalf("`nilval` should be empty string. Found: %v, %T", *v, *v)
 	}
 }

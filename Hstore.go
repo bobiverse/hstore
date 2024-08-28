@@ -133,7 +133,12 @@ func (hstore *Hstore) Print() {
 
 // Set ..
 func (hstore *Hstore) Set(key string, val any) {
-	s := fmt.Sprintf("%v", val)
+	s := ""
+
+	if val != nil {
+		s = fmt.Sprintf("%v", val)
+	}
+
 	hstore.Hstore[key] = &s
 }
 
