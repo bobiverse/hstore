@@ -59,7 +59,19 @@ func (hstore *Hstore) Scan(value interface{}) error {
 		return nil
 	}
 
-	val := []uint8(value.(string))
+	var val []uint8
+
+	switch v := value.(type) {
+	case []uint8:
+		val = v
+	case string:
+		val = []uint8(v)
+	case *string:
+		val = []uint8(*v)
+	default:
+		val = []uint8{}
+	}
+
 	if err := hstore.Hstore.Scan(val); err != nil {
 		return err
 	}
