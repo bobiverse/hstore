@@ -102,14 +102,7 @@ func (hstore *Hstore) loadFromCache(key string) any {
 
 // IsEmpty ..
 func (hstore *Hstore) IsEmpty() bool {
-	isEmpty := hstore.Hstore == nil || hstore.Len() == 0
-
-	// clear cache if main map is empty
-	if isEmpty && hstore.cache != nil {
-		hstore.cache = nil
-	}
-
-	return isEmpty
+	return hstore.Hstore == nil || hstore.Len() == 0
 }
 
 // InitIfEmpty ..
